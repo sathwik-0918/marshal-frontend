@@ -1,0 +1,67 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+/* ==========================================================
+   MARSHAL DESIGN TOKENS
+   The whole visual system lives here. Every screen draws from
+   these — nobody invents a new color or spacing value in a
+   component file. That's what keeps nine reference styles
+   feeling like one product instead of nine demos stapled together.
+   ========================================================== */
+@theme {
+  /* --- Base palette: control-room / departure-board --- */
+  --color-ink: #14171c;
+  --color-panel: #1d2129;
+  --color-panel-raised: #262b35;
+  --color-mist: #8b92a0;
+  --color-chalk: #edeff3;
+  --color-border: #2a2f39;
+
+  /* --- The one accent. It marks exactly one thing: what's live right now. --- */
+  --color-amber: #e3a72e;
+  --color-amber-dim: #4a3a1a;
+
+  /* --- Status family. Functional only — never decorative. --- */
+  --color-info: #5b8def;
+  --color-warning: #e0862a;
+  --color-critical: #e5484d;
+  --color-success: #3dd68c;
+
+  /* --- Event-category colors: the public/expressive side's palette.
+     Each one MEANS a category, so "colorful" stays intentional
+     rather than decorative — not a random gradient. --- */
+  --color-cat-tournament: #e3a72e; /* same amber as the operational accent — deliberate thread of continuity */
+  --color-cat-fest: #e8547c;
+  --color-cat-campaign: #8b7fe8;
+  --color-cat-personal: #4fc1b0;
+
+  /* --- Type --- */
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* --- Radius scale: intentionally small and consistent --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-chalk);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}

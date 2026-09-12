@@ -1,5 +1,6 @@
 import GlassNav from '../components/marketing/GlassNav';
 import ScheduleReflowDemo from '../components/marketing/ScheduleReflowDemo';
+import { Link } from 'react-router-dom';
 
 const CATEGORIES = [
   {
@@ -50,36 +51,42 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-8 flex items-center gap-3">
-            <button className="rounded-sm bg-amber px-5 py-2.5 text-sm font-medium text-ink hover:brightness-110 transition">
-              Find an event
-            </button>
-            <button className="rounded-sm border border-border px-5 py-2.5 text-sm font-medium text-chalk hover:border-mist transition">
-              Start a schedule
-            </button>
-          </div>
 
-          <div className="mt-16">
-            <ScheduleReflowDemo />
-          </div>
-        </div>
-      </section>
-
-      <section id="discover" className="mx-auto max-w-5xl px-6 pb-28">
-        <h2 className="mb-6 text-sm font-medium text-mist">One engine, four kinds of chaos</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {CATEGORIES.map((cat) => (
-            <div
-              key={cat.name}
-              className={`rounded-lg border border-white/10 p-6 flex flex-col justify-end min-h-[160px] ${cat.span}`}
-              style={{ background: `linear-gradient(160deg, ${cat.color}26 0%, transparent 60%)` }}
+            <a href="#discover"
+            className="rounded-sm bg-amber px-5 py-2.5 text-sm font-medium text-ink hover:brightness-110 transition"
             >
-              <div className="mb-3 h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
-              <h3 className="text-lg font-semibold">{cat.name}</h3>
-              <p className="mt-1.5 text-sm text-mist">{cat.copy}</p>
-            </div>
-          ))}
+            Find an event
+          </a>
+          <Link
+            to="/sign-up"
+            className="rounded-sm border border-border px-5 py-2.5 text-sm font-medium text-chalk hover:border-mist transition"
+          >
+            Start a schedule
+          </Link>
         </div>
-      </section>
+
+        <div className="mt-16">
+          <ScheduleReflowDemo />
+        </div>
     </div>
+      </section >
+
+    <section id="discover" className="mx-auto max-w-5xl px-6 pb-28">
+      <h2 className="mb-6 text-sm font-medium text-mist">One engine, four kinds of chaos</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {CATEGORIES.map((cat) => (
+          <div
+            key={cat.name}
+            className={`rounded-lg border border-white/10 p-6 flex flex-col justify-end min-h-[160px] ${cat.span}`}
+            style={{ background: `linear-gradient(160deg, ${cat.color}26 0%, transparent 60%)` }}
+          >
+            <div className="mb-3 h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+            <h3 className="text-lg font-semibold">{cat.name}</h3>
+            <p className="mt-1.5 text-sm text-mist">{cat.copy}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+    </div >
   );
 }

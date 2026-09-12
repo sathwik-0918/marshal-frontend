@@ -1,9 +1,5 @@
-/**
- * GlassNav — floating, translucent, sits above the content rather
- * than pinned edge-to-edge. The sanctioned Liquid-Glass-style use
- * case: navigation as one distinct floating layer, not glass
- * applied to everything.
- */
+import { Link } from 'react-router-dom';
+
 export default function GlassNav() {
   return (
     <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex w-[min(92%,860px)] items-center justify-between rounded-lg border border-white/10 bg-panel/60 backdrop-blur-xl px-5 py-3 shadow-xl">
@@ -17,9 +13,12 @@ export default function GlassNav() {
         <a href="#how" className="hover:text-chalk transition-colors">How it works</a>
       </div>
 
-      <button className="rounded-sm bg-chalk px-4 py-1.5 text-sm font-medium text-ink hover:brightness-90 transition">
+      <Link
+        to="/sign-in"
+        className="rounded-sm bg-chalk px-4 py-1.5 text-sm font-medium text-ink hover:brightness-90 transition"
+      >
         Sign in
-      </button>
+      </Link>
     </nav>
   );
 }

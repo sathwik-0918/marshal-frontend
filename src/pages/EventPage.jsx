@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { MapPin, Calendar } from 'lucide-react';
 import AppShell from '../layouts/AppShell';
 import Panel from '../components/primitives/Panel';
@@ -6,15 +8,29 @@ import Button from '../components/primitives/Button';
 import LiveNowSection from '../components/event/LiveNowSection';
 import UpcomingList from '../components/event/UpcomingList';
 import ScheduleTimeline from '../components/event/ScheduleTimeline';
+import PrivateAccessGate from '../components/event/PrivateAccessGate';
 import { generateMockEvent } from '../data/mockEventData';
 import { getCurrentActivities, getUpcomingActivities } from '../utils/scheduleTime';
+import { resolveEventAccess } from '../utils/eventAccess';
 
 export default function EventPage() {
-  // Mock data for now — Phase 3's real Express routes don't exist yet.
-  // Swapping this for a real fetch later means this component's shape
-  // doesn't change, only where `event` comes from.
-  const [event] = useState(() => generateMockEvent());
-  const [view, setView] = useState('event'); // 'event' | 'mine'
+  const { eventId } = useParams();
+  const { isLoaded, isSignedIn } = useAuth(); // optional here — never redirects
+
+  const [event] = useState(() => generateMockEvent(eventId));
+  const [enteredCode, setEnteredCode] = useState(null);
+  const [view, setView] = useState('event');
+
+  const access = useMemo(
+    () =>
+      resolveEventAccess({
+        schedule: event,
+        isSignedIn,
+        isMember: event.viewerIsMember,
+        enteredCode,
+      }),
+    [event, isSignedIn, enteredCode]
+  );
 
   const liveNow = useMemo(() => getCurrentActivities(event.activities), [event]);
   const upcoming = useMemo(() => getUpcomingActivities(event.activities), [event]);
@@ -22,6 +38,16 @@ export default function EventPage() {
     () => (view === 'mine' ? event.activities.filter((a) => a.isMine) : event.activities),
     [view, event]
   );
+
+  if (!isLoaded) {
+    return <div className="flex h-screen items-center justify-center bg-ink text-mist text-sm">Loading...</div>;
+  }
+
+  if (!access.granted) {
+    return <PrivateAccessGate onSubmitCode={setEnteredCode} />;
+  }
+
+  const isMember = access.level === 'member';
 
   return (
     <AppShell
@@ -31,7 +57,11 @@ export default function EventPage() {
             <h1 className="text-sm font-semibold">{event.name}</h1>
             <p className="text-xs text-mist">{event.dayLabel} · Live</p>
           </div>
-          <Button variant="primary" size="sm">Report a problem</Button>
+          {isMember ? (
+            <Button variant="primary" size="sm">Report a problem</Button>
+          ) : (
+            <span className="text-xs text-mist">Public view</span>
+          )}
         </>
       }
       inspector={
@@ -43,6 +73,13 @@ export default function EventPage() {
               <p className="flex items-center gap-2"><Calendar size={14} className="text-mist" /> {event.dayLabel}</p>
             </div>
           </Panel>
+          {!isMember && (
+            <Panel>
+              <p className="text-sm text-mist">
+                Sign in to see your personal schedule, get notified of changes, and message MARSHAL directly.
+              </p>
+            </Panel>
+          )}
         </div>
       }
     >
@@ -57,15 +94,13 @@ export default function EventPage() {
             <UpcomingList activities={upcoming} />
           </div>
           <div className="md:col-span-2">
-            <div className="mb-3 flex items-center gap-2">
-              <Button size="sm" variant={view === 'event' ? 'primary' : 'secondary'} onClick={() => setView('event')}>
-                Event schedule
-              </Button>
-              <Button size="sm" variant={view === 'mine' ? 'primary' : 'secondary'} onClick={() => setView('mine')}>
-                My schedule
-              </Button>
-            </div>
-            <ScheduleTimeline activities={visibleActivities} />
+            {isMember && (
+              <div className="mb-3 flex items-center gap-2">
+                <Button size="sm" variant={view === 'event' ? 'primary' : 'secondary'} onClick={() => setView('event')}>Event schedule</Button>
+                <Button size="sm" variant={view === 'mine' ? 'primary' : 'secondary'} onClick={() => setView('mine')}>My schedule</Button>
+              </div>
+            )}
+            <ScheduleTimeline activities={isMember ? visibleActivities : event.activities} />
           </div>
         </section>
       </div>

@@ -30,7 +30,7 @@ export default function DashboardPage() {
       }
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link to="/app/events/vbit-fest-2026" className="md:col-span-2">
+        <Link to="/events/vbit-fest-2026" className="md:col-span-2">
           <Panel emphasis className="hover:border-amber/70 transition-colors cursor-pointer">
             <StatusBadge status="in_progress" />
             <h2 className="mt-3 text-lg font-semibold">VBIT Cultural Fest 2026</h2>

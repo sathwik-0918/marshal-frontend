@@ -1,17 +1,31 @@
-/**
- * Realistic demo content, not generic placeholder text. Timestamps
- * are relative to whenever this loads, not fixed calendar dates, so
- * "what's live right now" is genuinely true whenever you open this —
- * today, or three weeks from now during the actual review.
- */
-export function generateMockEvent() {
+const MOCK_EVENTS = {
+  'vbit-fest-2026': {
+    id: 'vbit-fest-2026',
+    name: 'VBIT Cultural Fest 2026',
+    dayLabel: 'Day 6 of 10',
+    location: 'VBIT Campus, Hyderabad',
+    visibility: 'public',
+    accessCode: null,
+    viewerIsMember: true,
+  },
+  'robotics-core-sync': {
+    id: 'robotics-core-sync',
+    name: 'Robotics Club — Core Team Sync',
+    dayLabel: 'Weekly',
+    location: 'Lab 3',
+    visibility: 'private',
+    accessCode: 'RBT-4X92',
+    viewerIsMember: false,
+  },
+};
+
+export function generateMockEvent(eventId = 'vbit-fest-2026') {
+  const base = MOCK_EVENTS[eventId] ?? MOCK_EVENTS['vbit-fest-2026'];
   const now = Date.now();
   const min = 60 * 1000;
 
   return {
-    name: 'VBIT Cultural Fest 2026',
-    dayLabel: 'Day 6 of 10',
-    location: 'VBIT Campus, Hyderabad',
+    ...base,
     status: 'live',
     activities: [
       { id: 'a1', title: 'Dance Competition', venue: 'Main Stage', scheduledStart: new Date(now - 20 * min).toISOString(), durationMinutes: 90, status: 'scheduled', isMine: false },

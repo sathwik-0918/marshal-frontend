@@ -10,7 +10,7 @@ export default function UpcomingList({ activities }) {
       ) : (
         <ul className="space-y-3">
           {activities.map((activity) => (
-            <li key={activity.id} className="flex items-center justify-between text-sm">
+            <li key={activity._id} className="flex items-center justify-between text-sm">
               <div>
                 <p className="font-medium">{activity.title}</p>
                 <p className="text-xs text-mist">{activity.venue}</p>

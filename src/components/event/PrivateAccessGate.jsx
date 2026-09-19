@@ -3,7 +3,7 @@ import { Lock } from 'lucide-react';
 import Panel from '../primitives/Panel';
 import Button from '../primitives/Button';
 
-export default function PrivateAccessGate({ onSubmitCode }) {
+export default function PrivateAccessGate({ onSubmitCode, showError }) {
   const [code, setCode] = useState('');
 
   return (
@@ -27,6 +27,7 @@ export default function PrivateAccessGate({ onSubmitCode }) {
             placeholder="Access code"
             className="rounded-sm border border-border bg-panel-raised px-3 py-2 text-sm text-center tracking-wide font-mono"
           />
+          {showError && <p className="text-xs text-critical">That code didn't work. Try again.</p>}
           <Button type="submit" variant="primary">Join event</Button>
         </form>
       </Panel>

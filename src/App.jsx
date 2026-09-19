@@ -5,6 +5,7 @@ import SignUpPage from './pages/SignUpPage';
 import DashboardPage from './pages/DashboardPage';
 import EventPage from './pages/EventPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import CreateSchedulePage from './pages/CreateSchedulePage';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
       {/* Genuinely auth-only: no logged-out version makes sense here. */}
       <Route element={<ProtectedRoute />}>
         <Route path="/app" element={<DashboardPage />} />
+        <Route path="/schedules/new" element={<CreateSchedulePage />} />
       </Route>
     </Routes>
   );

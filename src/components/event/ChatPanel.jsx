@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Send } from 'lucide-react';
 import Button from '../primitives/Button';
 import { useApi } from '../../hooks/useApi';
+import ProposalOptionCard from './ProposalOptionCard';
 
 export default function ChatPanel({ scheduleId, onClose }) {
   const apiFetch = useApi();
@@ -83,14 +84,7 @@ function ChatMessage({ message }) {
           <span className="text-xs text-mist">{p.riskTier} risk · pending approval</span>
         </div>
         <ul className="space-y-2">
-          {p.options.map((opt, i) => (
-            <li key={i} className="rounded-sm bg-ink/40 p-2">
-              <p>{opt.description}</p>
-              {opt.mlContext?.conflictDetected && (
-                <p className="mt-1 text-xs text-critical">Checked against the schedule — this creates a conflict</p>
-              )}
-            </li>
-          ))}
+          {p.options.map((opt, i) => <ProposalOptionCard key={i} option={opt} />)}
         </ul>
       </div>
     );

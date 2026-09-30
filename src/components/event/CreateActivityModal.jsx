@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import Panel from '../primitives/Panel';
 import Button from '../primitives/Button';
 import { useApi } from '../../hooks/useApi';
+import MemberPicker from './MemberPicker';
+import ActivityPicker from './ActivityPicker';
 
 const ACTIVITY_TYPES = ['session', 'match', 'workshop', 'ceremony', 'meeting'];
 const PRIORITIES = ['low', 'medium', 'high'];
@@ -12,10 +14,12 @@ const labelClass = 'block text-xs text-mist mb-1.5';
 export default function CreateActivityModal({ scheduleId, onClose, onCreated }) {
   const apiFetch = useApi();
   const [form, setForm] = useState({
-    title: '', activityType: 'session', scheduledStart: '', durationMinutes: 30, venue: '', description: '', priority: 'medium',
+    title: '', activityType: 'session', scheduledStart: '', durationMinutes: 30, venue: '', requiredResources: '', description: '', priority: 'medium',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [stakeholderIds, setStakeholderIds] = useState([]);
+  const [dependencyIds, setDependencyIds] = useState([]);
 
   const update = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -30,6 +34,9 @@ export default function CreateActivityModal({ scheduleId, onClose, onCreated }) 
           ...form,
           durationMinutes: Number(form.durationMinutes),
           scheduledStart: new Date(form.scheduledStart).toISOString(),
+          stakeholders: stakeholderIds.map((id) => ({ userId: id, stakeholderRole: 'participant' })),
+          dependencies: dependencyIds,
+          requiredResources: form.requiredResources.split(',').map((s) => s.trim()).filter(Boolean),
         }),
       });
       onCreated(created);
@@ -80,8 +87,20 @@ export default function CreateActivityModal({ scheduleId, onClose, onCreated }) 
             <input required className={inputClass} value={form.venue} onChange={(e) => update('venue', e.target.value)} />
           </div>
           <div>
+            <label className={labelClass}>Required resources (optional)</label>
+            <input className={inputClass} placeholder="e.g. Professor Ravi, Projector A" value={form.requiredResources} onChange={(e) => update('requiredResources', e.target.value)} />
+          </div>
+          <div>
             <label className={labelClass}>Description</label>
             <textarea className={inputClass} rows={2} value={form.description} onChange={(e) => update('description', e.target.value)} />
+          </div>
+          <div>
+            <label className={labelClass}>Participants</label>
+            <MemberPicker scheduleId={scheduleId} selectedIds={stakeholderIds} onChange={setStakeholderIds} />
+          </div>
+          <div>
+            <label className={labelClass}>Depends on (optional)</label>
+            <ActivityPicker scheduleId={scheduleId} selectedIds={dependencyIds} onChange={setDependencyIds} />
           </div>
           {error && <p className="text-sm text-critical">{error}</p>}
           <div className="flex gap-2 pt-1">

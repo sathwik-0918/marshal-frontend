@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import Panel from '../primitives/Panel';
 import Button from '../primitives/Button';
 import { useApi } from '../../hooks/useApi';
+import ProposalOptionCard from './ProposalOptionCard';
+
+const RISK_COLORS = { low: 'text-success bg-success/10', medium: 'text-warning bg-warning/10', high: 'text-critical bg-critical/10' };
 
 export default function PendingProposals({ scheduleId, canDecide, onDecided }) {
   const apiFetch = useApi();
@@ -23,7 +26,9 @@ export default function PendingProposals({ scheduleId, canDecide, onDecided }) {
       setProposals((prev) => prev.filter((p) => p._id !== proposalId));
       onDecided?.();
     } catch (err) {
-      alert(err.message); // a proper toast is a polish item for later, not this pass
+      alert(err.message);
+      // An out-of-date proposal can never be approved, so drop it from the list.
+      if (err.status === 409) setProposals((prev) => prev.filter((p) => p._id !== proposalId));
     } finally {
       setDecidingId(null);
     }
@@ -37,23 +42,21 @@ export default function PendingProposals({ scheduleId, canDecide, onDecided }) {
       <div className="space-y-3">
         {proposals.map((p) => (
           <Panel key={p._id} emphasis>
-            <p className="text-sm text-mist mb-2">"{p.requestText}"</p>
-            <span className="text-xs text-mist">{p.riskTier} risk</span>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-mist">Reported: "{p.requestText}"</p>
+              <span className={`text-xs rounded-sm px-2 py-0.5 ${RISK_COLORS[p.riskTier] || RISK_COLORS.medium}`}>{p.riskTier} risk</span>
+            </div>
             <ul className="mt-2 space-y-2">
               {p.options.map((opt) => (
-                <li key={opt._id} className="flex items-center justify-between rounded-sm bg-panel-raised p-2">
-                  <div>
-                    <p className="text-sm">{opt.description}</p>
-                    {opt.mlContext?.conflictDetected && (
-                      <p className="text-xs text-critical">Conflicts with another activity</p>
-                    )}
-                  </div>
-                  {canDecide && (
+                <ProposalOptionCard
+                  key={opt._id}
+                  option={opt}
+                  action={canDecide && (
                     <Button size="sm" variant="primary" disabled={decidingId === p._id} onClick={() => decide(p._id, 'approve', opt._id)}>
-                      Approve
+                      Approve this option
                     </Button>
                   )}
-                </li>
+                />
               ))}
             </ul>
             {canDecide && (

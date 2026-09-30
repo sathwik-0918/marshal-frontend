@@ -20,6 +20,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    apiFetch('/api/users/resolve-invites', { method: 'POST' }).catch(() => {});
     apiFetch('/api/schedules/mine')
       .then((data) => {
         if (cancelled) return;

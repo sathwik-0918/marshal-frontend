@@ -13,6 +13,10 @@ import { useApi } from '../hooks/useApi';
 import { getCurrentActivities, getUpcomingActivities } from '../utils/scheduleTime';
 import ChatPanel from '../components/event/ChatPanel';
 import PendingProposals from '../components/event/PendingProposals';
+import PeopleModal from '../components/event/PeopleModal';
+import BulkImportModal from '../components/event/BulkImportModal';
+import EditStakeholdersModal from '../components/event/EditStakeholdersModal';
+import EditDependenciesModal from '../components/event/EditDependenciesModal';
 
 export default function EventPage() {
   const { eventId } = useParams();
@@ -27,6 +31,10 @@ export default function EventPage() {
   const [attemptedCode, setAttemptedCode] = useState(false);
   const [view, setView] = useState('event');
   const [showAddActivity, setShowAddActivity] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [editingStakeholdersFor, setEditingStakeholdersFor] = useState(null);
+  const [editingDependenciesFor, setEditingDependenciesFor] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -117,12 +125,21 @@ export default function EventPage() {
                 </div>
               ) : <div />}
               {canEdit && (
-                <Button size="sm" variant="secondary" onClick={() => setShowAddActivity(true)}>
-                  <Plus size={14} /> Add activity
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => setShowAddActivity(true)}>
+                    <Plus size={14} /> Add activity
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setShowPeople(true)}>People</Button>
+                  <Button size="sm" variant="secondary" onClick={() => setShowBulkImport(true)}>Bulk import</Button>
+                </div>
               )}
             </div>
-            <ScheduleTimeline activities={isMember ? visibleActivities : activities} />
+            <ScheduleTimeline
+              activities={isMember ? visibleActivities : activities}
+              canEdit={canEdit}
+              onManageStakeholders={setEditingStakeholdersFor}
+              onManageDependencies={setEditingDependenciesFor}
+            />
           </div>
         </section>
       </div>
@@ -135,6 +152,24 @@ export default function EventPage() {
             setActivities((prev) => [...prev, newActivity]);
             setShowAddActivity(false);
           }}
+        />
+      )}
+      {showPeople && <PeopleModal scheduleId={eventId} viewerRole={viewerRole} onClose={() => setShowPeople(false)} />}
+      {showBulkImport && <BulkImportModal scheduleId={eventId} onClose={() => setShowBulkImport(false)} onImported={() => setRefreshTick((t) => t + 1)} />}
+      {editingStakeholdersFor && (
+        <EditStakeholdersModal
+          scheduleId={eventId}
+          activity={editingStakeholdersFor}
+          onClose={() => setEditingStakeholdersFor(null)}
+          onSaved={() => { setEditingStakeholdersFor(null); setRefreshTick((t) => t + 1); }}
+        />
+      )}
+      {editingDependenciesFor && (
+        <EditDependenciesModal
+          scheduleId={eventId}
+          activity={editingDependenciesFor}
+          onClose={() => setEditingDependenciesFor(null)}
+          onSaved={() => { setEditingDependenciesFor(null); setRefreshTick((t) => t + 1); }}
         />
       )}
       {chatOpen && <ChatPanel scheduleId={eventId} onClose={() => setChatOpen(false)} />}

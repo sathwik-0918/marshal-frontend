@@ -4,6 +4,7 @@ import AppShell from '../layouts/AppShell';
 import Panel from '../components/primitives/Panel';
 import Button from '../components/primitives/Button';
 import CsvPreviewRow, { validateRowClientSide } from '../components/event/CsvPreviewRow';
+import ReferenceEntryRow from '../components/event/ReferenceEntryRow';
 import { useApi } from '../hooks/useApi';
 
 const CATEGORIES = ['tournament', 'fest', 'campaign', 'project', 'meeting', 'personal', 'other'];
@@ -14,7 +15,7 @@ const labelClass = 'block text-xs text-mist mb-1.5';
 export default function CreateSchedulePage() {
   const navigate = useNavigate();
   const apiFetch = useApi();
-  const [mode, setMode] = useState('manual'); // 'manual' | 'file'
+  const [mode, setMode] = useState('manual'); // 'manual' | 'file' | 'document'
 
   const [form, setForm] = useState({
     name: '', description: '', category: 'other', visibility: 'private', startDate: '', endDate: '', location: '',
@@ -27,7 +28,10 @@ export default function CreateSchedulePage() {
   const [fileStep, setFileStep] = useState('select'); // 'select' | 'preview'
   const [file, setFile] = useState(null);
   const [rows, setRows] = useState([]);
+  const [referenceEntries, setReferenceEntries] = useState([]);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [detectedScheduleType, setDetectedScheduleType] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
 
   async function handleManualSubmit(e) {
     e.preventDefault();
@@ -54,7 +58,8 @@ export default function CreateSchedulePage() {
       const formData = new FormData();
       formData.append('file', file);
       const token = await window.Clerk?.session?.getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/schedules/from-file/preview`, {
+      const endpoint = mode === 'document' ? 'from-file/preview-document' : 'from-file/preview';
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/schedules/${endpoint}`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
@@ -62,10 +67,13 @@ export default function CreateSchedulePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Preview failed');
       setRows(data.rows);
+      setReferenceEntries(data.referenceEntries || []);
+      setDetectedScheduleType(data.detectedScheduleType || '');
+      setAdditionalNotes(data.additionalNotes || '');
       setForm((f) => ({
         ...f,
-        startDate: f.startDate || data.suggested.startDate || '',
-        endDate: f.endDate || data.suggested.endDate || '',
+        startDate: f.startDate || data.suggested?.startDate || '',
+        endDate: f.endDate || data.suggested?.endDate || '',
       }));
       setFileStep('preview');
     } catch (err) {
@@ -76,6 +84,7 @@ export default function CreateSchedulePage() {
   }
 
   const validCount = rows.filter((r) => validateRowClientSide(r).length === 0).length;
+  const hasAnythingToImport = validCount > 0 || referenceEntries.length > 0;
 
   async function handleFileConfirm() {
     setError(null);
@@ -87,7 +96,7 @@ export default function CreateSchedulePage() {
     try {
       const created = await apiFetch('/api/schedules/from-file/confirm', {
         method: 'POST',
-        body: JSON.stringify({ ...form, rows }),
+        body: JSON.stringify({ ...form, rows, referenceEntries, additionalNotes }),
       });
       navigate(`/events/${created.schedule._id}`);
     } catch (err) {
@@ -96,12 +105,30 @@ export default function CreateSchedulePage() {
     }
   }
 
+  function resetFileState() {
+    setFile(null);
+    setRows([]);
+    setReferenceEntries([]);
+    setDetectedScheduleType('');
+    setAdditionalNotes('');
+    setFileStep('select');
+  }
+
+  function confirmButtonLabel() {
+    if (submitting) return 'Creating…';
+    const parts = [];
+    if (validCount > 0) parts.push(`${validCount} activit${validCount === 1 ? 'y' : 'ies'}`);
+    if (referenceEntries.length > 0) parts.push(`${referenceEntries.length} reference entr${referenceEntries.length === 1 ? 'y' : 'ies'}`);
+    return `Create schedule with ${parts.join(' and ')}`;
+  }
+
   return (
     <AppShell topBarContent={<h1 className="text-sm font-semibold">New schedule</h1>}>
       <div className="max-w-2xl">
         <div className="mb-4 flex gap-2">
-          <Button size="sm" variant={mode === 'manual' ? 'primary' : 'secondary'} onClick={() => setMode('manual')}>Create manually</Button>
-          <Button size="sm" variant={mode === 'file' ? 'primary' : 'secondary'} onClick={() => setMode('file')}>Create from file</Button>
+          <Button size="sm" variant={mode === 'manual' ? 'primary' : 'secondary'} onClick={() => { setMode('manual'); resetFileState(); }}>Create manually</Button>
+          <Button size="sm" variant={mode === 'file' ? 'primary' : 'secondary'} onClick={() => { setMode('file'); resetFileState(); }}>Create from CSV</Button>
+          <Button size="sm" variant={mode === 'document' ? 'primary' : 'secondary'} onClick={() => { setMode('document'); resetFileState(); }}>Create from document</Button>
         </div>
 
         {mode === 'manual' && (
@@ -151,21 +178,50 @@ export default function CreateSchedulePage() {
           </Panel>
         )}
 
-        {mode === 'file' && fileStep === 'select' && (
+        {(mode === 'file' || mode === 'document') && fileStep === 'select' && (
           <Panel>
-            <p className="text-xs text-mist mb-3">
-              CSV columns: title, activityType, scheduledStart, durationMinutes, venue, description, participantEmails (semicolon-separated), requiredResources (semicolon-separated)
-            </p>
-            <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files[0])} className="text-sm mb-3" />
+            {mode === 'file' ? (
+              <p className="text-xs text-mist mb-3">
+                CSV columns: title, activityType, scheduledStart, durationMinutes, venue, description, participantEmails (semicolon-separated), requiredResources (semicolon-separated)
+              </p>
+            ) : (
+              <p className="text-xs text-mist mb-3">
+                Upload a PDF or plain text schedule — an itinerary, a fest program, a class timetable, an exam schedule, a
+                weekly menu, an academic calendar. MARSHAL will read it and propose activities and reference entries for
+                you to review before anything is created. Scanned/image PDFs and Word/Excel files aren't supported yet —
+                use text-based PDF or .txt.
+              </p>
+            )}
+            <input
+              type="file"
+              accept={mode === 'file' ? '.csv' : '.pdf,.txt'}
+              onChange={(e) => setFile(e.target.files[0])}
+              className="text-sm mb-3"
+            />
             {error && <p className="text-sm text-critical mb-3">{error}</p>}
             <Button variant="primary" onClick={handlePreview} disabled={!file || previewLoading}>
-              {previewLoading ? 'Reading file...' : 'Preview'}
+              {previewLoading ? (mode === 'document' ? 'Reading document...' : 'Reading file...') : 'Preview'}
             </Button>
           </Panel>
         )}
 
-        {mode === 'file' && fileStep === 'preview' && (
+        {(mode === 'file' || mode === 'document') && fileStep === 'preview' && (
           <Panel>
+            {detectedScheduleType && (
+              <div className="mb-4 rounded-sm bg-panel-raised px-3 py-2 text-sm">
+                Detected: <span className="font-medium">{detectedScheduleType}</span>
+              </div>
+            )}
+
+            {rows.length === 0 && referenceEntries.length === 0 && (
+              <div className="mb-4 rounded-sm border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+                MARSHAL identified this as a <strong>{detectedScheduleType || 'schedule document'}</strong> but
+                couldn't confidently extract anything from it — this can happen with documents laid out as dense
+                grids or tables. Check the notes box below for anything it could still tell about the content, or
+                switch to creating activities manually.
+              </div>
+            )}
+
             <h2 className="text-sm font-medium mb-3">Schedule details</h2>
             <div className="space-y-3 mb-5">
               <div>
@@ -196,25 +252,64 @@ export default function CreateSchedulePage() {
                   <input type="date" className={inputClass} value={form.endDate} onChange={(e) => update('endDate', e.target.value)} />
                 </div>
               </div>
-              <p className="text-[11px] text-mist">Dates were pre-filled from the earliest and latest activity in your file — adjust if needed.</p>
+              <p className="text-[11px] text-mist">Dates were pre-filled from the earliest and latest activity found — adjust if needed.</p>
             </div>
 
-            <h2 className="text-sm font-medium mb-1">Activities ({validCount} of {rows.length} ready)</h2>
-            <div className="space-y-2 mb-4 max-h-[40vh] overflow-y-auto">
-              {rows.map((row, i) => (
-                <CsvPreviewRow
-                  key={i}
-                  row={row}
-                  onChange={(updated) => setRows((prev) => prev.map((r, idx) => (idx === i ? updated : r)))}
-                  onRemove={() => setRows((prev) => prev.filter((_, idx) => idx !== i))}
+            {rows.length > 0 && (
+              <>
+                <h2 className="text-sm font-medium mb-1">Activities ({validCount} of {rows.length} ready)</h2>
+                <div className="space-y-2 mb-4 max-h-[30vh] overflow-y-auto">
+                  {rows.map((row, i) => (
+                    <CsvPreviewRow
+                      key={i}
+                      row={row}
+                      onChange={(updated) => setRows((prev) => prev.map((r, idx) => (idx === i ? updated : r)))}
+                      onRemove={() => setRows((prev) => prev.filter((_, idx) => idx !== i))}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {referenceEntries.length > 0 && (
+              <>
+                <h2 className="text-sm font-medium mb-1">Reference entries ({referenceEntries.length} found)</h2>
+                <p className="text-[11px] text-mist mb-2">
+                  Recurring slots and date-range periods — timetable classes, weekly menus, term phases. Stored as
+                  reference info, not live schedulable activities.
+                </p>
+                <div className="space-y-2 mb-4 max-h-[30vh] overflow-y-auto">
+                  {referenceEntries.map((entry, i) => (
+                    <ReferenceEntryRow
+                      key={i}
+                      entry={entry}
+                      onRemove={() => setReferenceEntries((prev) => prev.filter((_, idx) => idx !== i))}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {mode === 'document' && (
+              <div className="mb-4">
+                <label className={labelClass}>Rules & notes (saved as searchable knowledge, not activities)</label>
+                <textarea
+                  className={inputClass}
+                  rows={4}
+                  value={additionalNotes}
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  placeholder="Nothing extracted"
                 />
-              ))}
-            </div>
+                <p className="text-[11px] text-mist mt-1">
+                  Edit or clear this before confirming — it becomes MARSHAL's reference knowledge for this schedule, searchable when reasoning about future requests.
+                </p>
+              </div>
+            )}
 
             {error && <p className="text-sm text-critical mb-3">{error}</p>}
             <div className="flex gap-2">
-              <Button variant="primary" onClick={handleFileConfirm} disabled={submitting || validCount === 0}>
-                {submitting ? 'Creating…' : `Create schedule with ${validCount} activit${validCount === 1 ? 'y' : 'ies'}`}
+              <Button variant="primary" onClick={handleFileConfirm} disabled={submitting || !hasAnythingToImport}>
+                {confirmButtonLabel()}
               </Button>
               <Button variant="secondary" onClick={() => setFileStep('select')} disabled={submitting}>Back</Button>
             </div>

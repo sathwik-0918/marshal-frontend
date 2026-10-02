@@ -5,7 +5,6 @@ const inputClass = 'w-full rounded-sm border border-border bg-ink px-2 py-1 text
 export function validateRowClientSide(row) {
   const errors = [];
   if (!row.title.trim()) errors.push('Missing title');
-  if (!row.venue.trim()) errors.push('Missing venue');
   if (!row.scheduledStart.trim()) errors.push('Missing start time');
   else if (Number.isNaN(new Date(row.scheduledStart).getTime())) errors.push('Invalid date/time');
   if (!row.durationMinutes || Number(row.durationMinutes) <= 0) errors.push('Duration must be positive');

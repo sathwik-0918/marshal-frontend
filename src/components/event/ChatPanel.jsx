@@ -33,7 +33,7 @@ export default function ChatPanel({ scheduleId, onClose }) {
       });
 
       if (result.needsClarification) {
-        setMessages((prev) => [...prev, { role: 'agent', text: result.question }]);
+        setMessages((prev) => [...prev, { role: 'agent', text: result.question, isChatReply: result.isChatReply }]);
       } else {
         setMessages((prev) => [...prev, { role: 'agent', proposal: result.proposal }]);
       }
@@ -91,8 +91,13 @@ function ChatMessage({ message }) {
   }
 
   const isUser = message.role === 'user';
+  const bubbleClass = isUser
+    ? 'ml-auto bg-amber text-ink'
+    : message.isChatReply
+      ? 'bg-panel-raised text-chalk border border-border/60'
+      : 'bg-panel-raised text-chalk';
   return (
-    <div className={`max-w-[85%] rounded-md px-3 py-2 text-sm ${isUser ? 'ml-auto bg-amber text-ink' : 'bg-panel-raised text-chalk'}`}>
+    <div className={`max-w-[85%] rounded-md px-3 py-2 text-sm ${bubbleClass}`}>
       {message.text}
     </div>
   );

@@ -23,7 +23,7 @@ export default function ScheduleTimeline({ activities, canEdit, onManageStakehol
                 content's natural width and the title just overflows. */}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{activity.title}</p>
-              <p className="truncate text-xs text-mist">{activity.venue}</p>
+              <p className="truncate text-xs text-mist">{activity.venue || 'No venue set'}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {canEdit && (

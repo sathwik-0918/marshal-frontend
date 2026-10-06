@@ -11,7 +11,7 @@ export function validateRowClientSide(row) {
   return errors;
 }
 
-export default function CsvPreviewRow({ row, onChange, onRemove }) {
+export default function CsvPreviewRow({ row, onChange, onRemove, id }) {
   const liveErrors = validateRowClientSide(row);
   const valid = liveErrors.length === 0;
 
@@ -20,7 +20,7 @@ export default function CsvPreviewRow({ row, onChange, onRemove }) {
   }
 
   return (
-    <div className={`rounded-sm border p-2 ${valid ? 'border-border' : 'border-critical/50'}`}>
+    <div id={id} className={`rounded-sm border p-2 ${valid ? 'border-border' : 'border-critical/50'}`}>
       <div className="flex items-start gap-2">
         <div className="mt-1.5 shrink-0">
           {valid ? <CheckCircle2 size={14} className="text-success" /> : <AlertTriangle size={14} className="text-critical" />}

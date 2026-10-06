@@ -7,6 +7,8 @@ import Button from '../components/primitives/Button';
 import LiveNowSection from '../components/event/LiveNowSection';
 import UpcomingList from '../components/event/UpcomingList';
 import ScheduleTimeline from '../components/event/ScheduleTimeline';
+import ExamTimetableView from '../components/event/ExamTimetableView';
+import ReferenceScheduleView from '../components/event/ReferenceScheduleView';
 import PrivateAccessGate from '../components/event/PrivateAccessGate';
 import CreateActivityModal from '../components/event/CreateActivityModal';
 import { useApi } from '../hooks/useApi';
@@ -24,6 +26,7 @@ export default function EventPage() {
 
   const [schedule, setSchedule] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [referenceEntries, setReferenceEntries] = useState([]);
   const [viewerRole, setViewerRole] = useState(null);
   const [viewerId, setViewerId] = useState(null);
   const [status, setStatus] = useState('loading');
@@ -46,11 +49,13 @@ export default function EventPage() {
         const query = accessCode ? `?accessCode=${encodeURIComponent(accessCode)}` : '';
         const scheduleRes = await apiFetch(`/api/schedules/${eventId}${query}`);
         const activitiesRes = await apiFetch(`/api/schedules/${eventId}/activities${query}`);
+        const referenceEntriesRes = await apiFetch(`/api/schedules/${eventId}/reference-entries${query}`);
         if (cancelled) return;
         setSchedule(scheduleRes.schedule);
         setViewerRole(scheduleRes.viewerRole);
         setViewerId(scheduleRes.viewerId);
         setActivities(activitiesRes);
+        setReferenceEntries(referenceEntriesRes);
         setStatus('ready');
       } catch (err) {
         if (cancelled) return;
@@ -66,6 +71,9 @@ export default function EventPage() {
   const upcoming = useMemo(() => getUpcomingActivities(activities), [activities]);
   const isMember = Boolean(viewerRole);
   const canEdit = viewerRole === 'owner' || viewerRole === 'manager'; // mirrors backend's requireRole('manager') floor exactly
+  const hasActivities = activities.length > 0;
+  const hasReferenceEntries = referenceEntries.length > 0;
+  const isExamLike = (schedule?.sourceDocumentType || '').toLowerCase().includes('exam');
   const visibleActivities = useMemo(
     () => (view === 'mine' ? activities.filter((a) => a.stakeholders?.some((s) => s.userId === viewerId)) : activities),
     [view, activities, viewerId]
@@ -99,6 +107,9 @@ export default function EventPage() {
             <div className="space-y-2 text-sm">
               <p className="flex items-center gap-2"><MapPin size={14} className="text-mist" /> {schedule.location || 'No location set'}</p>
               <p className="flex items-center gap-2"><Calendar size={14} className="text-mist" /> {schedule.status}</p>
+              {(schedule.sourceContext?.orgName || schedule.sourceContext?.academicTerm) && (
+                <p className="text-xs text-mist">{[schedule.sourceContext.orgName, schedule.sourceContext.academicTerm].filter(Boolean).join(' · ')}</p>
+              )}
             </div>
           </Panel>
           {!isMember && <Panel><p className="text-sm text-mist">Sign in to see your personal schedule, get notified of changes, and message MARSHAL directly.</p></Panel>}
@@ -107,41 +118,46 @@ export default function EventPage() {
       onChatClick={isMember ? () => setChatOpen(true) : undefined}
     >
       <div className="space-y-6">
-        <section>
-          <h2 className="mb-3 text-sm font-medium text-mist">Happening now</h2>
-          <LiveNowSection activities={liveNow} viewerId={viewerId} />
-        </section>
-
         <PendingProposals scheduleId={eventId} canDecide={canEdit} onDecided={() => setRefreshTick((t) => t + 1)} />
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-1"><UpcomingList activities={upcoming} /></div>
-          <div className="md:col-span-2">
-            <div className="mb-3 flex items-center justify-between">
-              {isMember ? (
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant={view === 'event' ? 'primary' : 'secondary'} onClick={() => setView('event')}>Event schedule</Button>
-                  <Button size="sm" variant={view === 'mine' ? 'primary' : 'secondary'} onClick={() => setView('mine')}>My schedule</Button>
+        {hasReferenceEntries && <ReferenceScheduleView referenceEntries={referenceEntries} />}
+        {isExamLike && hasActivities && <ExamTimetableView activities={activities} />}
+        {hasActivities && !isExamLike && (
+          <>
+            <section>
+              <h2 className="mb-3 text-sm font-medium text-mist">Happening now</h2>
+              <LiveNowSection activities={liveNow} viewerId={viewerId} />
+            </section>
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-1"><UpcomingList activities={upcoming} /></div>
+              <div className="md:col-span-2">
+                <div className="mb-3 flex items-center justify-between">
+                  {isMember ? (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant={view === 'event' ? 'primary' : 'secondary'} onClick={() => setView('event')}>Event schedule</Button>
+                      <Button size="sm" variant={view === 'mine' ? 'primary' : 'secondary'} onClick={() => setView('mine')}>My schedule</Button>
+                    </div>
+                  ) : <div />}
+                  {canEdit && (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => setShowAddActivity(true)}>
+                        <Plus size={14} /> Add activity
+                      </Button>
+                      <Button size="sm" variant="secondary" onClick={() => setShowPeople(true)}>People</Button>
+                      <Button size="sm" variant="secondary" onClick={() => setShowBulkImport(true)}>Bulk import</Button>
+                    </div>
+                  )}
                 </div>
-              ) : <div />}
-              {canEdit && (
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => setShowAddActivity(true)}>
-                    <Plus size={14} /> Add activity
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => setShowPeople(true)}>People</Button>
-                  <Button size="sm" variant="secondary" onClick={() => setShowBulkImport(true)}>Bulk import</Button>
-                </div>
-              )}
-            </div>
-            <ScheduleTimeline
-              activities={isMember ? visibleActivities : activities}
-              canEdit={canEdit}
-              onManageStakeholders={setEditingStakeholdersFor}
-              onManageDependencies={setEditingDependenciesFor}
-            />
-          </div>
-        </section>
+                <ScheduleTimeline
+                  activities={isMember ? visibleActivities : activities}
+                  canEdit={canEdit}
+                  onManageStakeholders={setEditingStakeholdersFor}
+                  onManageDependencies={setEditingDependenciesFor}
+                />
+              </div>
+            </section>
+          </>
+        )}
       </div>
 
       {showAddActivity && (

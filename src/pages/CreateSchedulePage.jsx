@@ -6,6 +6,7 @@ import Button from '../components/primitives/Button';
 import CsvPreviewRow, { validateRowClientSide } from '../components/event/CsvPreviewRow';
 import ReferenceEntryRow from '../components/event/ReferenceEntryRow';
 import ScheduleTypeGuide from '../components/event/ScheduleTypeGuide';
+import GenerateTimetablePanel from '../components/event/GenerateTimetablePanel';
 import { useApi } from '../hooks/useApi';
 
 const CATEGORIES = ['tournament', 'fest', 'campaign', 'project', 'meeting', 'personal', 'other'];
@@ -16,7 +17,7 @@ const labelClass = 'block text-xs text-mist mb-1.5';
 export default function CreateSchedulePage() {
   const navigate = useNavigate();
   const apiFetch = useApi();
-  const [mode, setMode] = useState('manual'); // 'manual' | 'file' | 'document'
+  const [mode, setMode] = useState('manual'); // 'manual' | 'file' | 'document' | 'generate'
 
   const [form, setForm] = useState({ name: '', description: '', category: 'other', visibility: 'private', startDate: '', endDate: '', location: '' });
   const update = (field, value) => setForm((f) => ({ ...f, [field]: value }));
@@ -139,6 +140,7 @@ export default function CreateSchedulePage() {
           <Button size="sm" variant={mode === 'manual' ? 'primary' : 'secondary'} onClick={() => { setMode('manual'); resetFileState(); }}>Create manually</Button>
           <Button size="sm" variant={mode === 'file' ? 'primary' : 'secondary'} onClick={() => { setMode('file'); resetFileState(); }}>Create from CSV</Button>
           <Button size="sm" variant={mode === 'document' ? 'primary' : 'secondary'} onClick={() => { setMode('document'); resetFileState(); }}>Import existing schedule</Button>
+          <Button size="sm" variant={mode === 'generate' ? 'primary' : 'secondary'} onClick={() => { setMode('generate'); resetFileState(); }}>Create from requirements</Button>
         </div>
 
         {mode === 'manual' && (
@@ -158,6 +160,14 @@ export default function CreateSchedulePage() {
               {error && <p className="text-sm text-critical">{error}</p>}
               <Button type="submit" variant="primary" disabled={submitting}>{submitting ? 'Creating…' : 'Create schedule'}</Button>
             </form>
+          </Panel>
+        )}
+
+        {mode === 'generate' && (
+          <Panel>
+            <h2 className="text-sm font-medium mb-3">Schedule name</h2>
+            <input className={inputClass + ' mb-4'} value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="e.g. CSM-III-C Weekly Timetable" />
+            <GenerateTimetablePanel form={form} onCreated={(id) => navigate(`/events/${id}`)} />
           </Panel>
         )}
 
